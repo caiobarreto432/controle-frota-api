@@ -7,9 +7,13 @@ const fs = require('fs');
 
 const app = express();
 
-const PORTA = 3000;
+const PORTA = Number(process.env.PORT) || 3000;
 const HOST = '0.0.0.0';
-const IP_REDE = '192.168.0.8';
+const URL_BASE = (
+  process.env.URL_BASE ||
+  process.env.RENDER_EXTERNAL_URL ||
+  `http://localhost:${PORTA}`
+).replace(/\/+$/, '');
 
 /* =====================================================
    MIDDLEWARES
@@ -33,13 +37,22 @@ app.use(
    BANCO DE DADOS
 ===================================================== */
 
-const pool = new Pool({
-  user: 'postgres',
-  host: 'localhost',
-  database: 'postgres',
-  password: 'Admin123@',
-  port: 5432,
-});
+const configuracaoBanco = process.env.DATABASE_URL
+  ? {
+      connectionString: process.env.DATABASE_URL,
+      ssl: {
+        rejectUnauthorized: false,
+      },
+    }
+  : {
+      user: process.env.DB_USER || 'postgres',
+      host: process.env.DB_HOST || 'localhost',
+      database: process.env.DB_NAME || 'postgres',
+      password: process.env.DB_PASSWORD,
+      port: Number(process.env.DB_PORT) || 5432,
+    };
+
+const pool = new Pool(configuracaoBanco);
 
 pool.on('error', (erro) => {
   console.error(
@@ -192,6 +205,37 @@ async function apagarArquivos(
       );
     } catch (_) {}
   }
+}
+
+function criarUrlFoto(
+  foto
+) {
+  if (!foto) {
+    return null;
+  }
+
+  const caminho = String(
+    foto
+  )
+    .trim()
+    .replace(
+      /^https?:\/\/[^/]+/i,
+      ''
+    )
+    .replace(
+      /\\/g,
+      '/'
+    )
+    .replace(/^\/+/, '');
+
+  const caminhoUpload =
+    caminho.startsWith(
+      'uploads/'
+    )
+      ? caminho
+      : `uploads/${caminho}`;
+
+  return `${URL_BASE}/${caminhoUpload}`;
 }
 
 async function verificarUsuario(
@@ -353,8 +397,8 @@ app.get(
       return res.json({
         sucesso: true,
         servidor: 'online',
-        ip:
-          IP_REDE,
+        url_base:
+          URL_BASE,
         porta:
           PORTA,
       });
@@ -1763,8 +1807,8 @@ app.post(
 
       if (
         existeProblema &&
-        arquivos.length ===
-          0
+        arquivos.length <
+          1
       ) {
         return res.status(
           400
@@ -1934,7 +1978,9 @@ app.post(
                   `uploads/${arquivo.filename}`,
 
                 url:
-                  `http://${IP_REDE}:${PORTA}/uploads/${arquivo.filename}`,
+                  criarUrlFoto(
+                    `uploads/${arquivo.filename}`
+                  ),
               })
             ),
         },
@@ -2078,12 +2124,9 @@ app.get(
                 ...foto,
 
                 url:
-                  `http://${IP_REDE}:${PORTA}/uploads/${String(
+                  criarUrlFoto(
                     foto.foto
-                  ).replace(
-                    /^uploads[\\/]/,
-                    ''
-                  )}`,
+                  ),
               })
             ),
         });
@@ -2539,7 +2582,7 @@ const servidor =
       );
 
       console.log(
-        `Acesso pela rede: http://${IP_REDE}:${PORTA}`
+        `URL pública: ${URL_BASE}`
       );
 
       console.log(
