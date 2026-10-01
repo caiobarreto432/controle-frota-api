@@ -1,5 +1,9 @@
 ﻿const express = require('express');
 const rateLimit = require('express-rate-limit');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+
+const JWT_SECRET = process.env.JWT_SECRET || 'chave_secreta_controle_frota_pmba_2026';
 const cors = require('cors');
 const { Pool } = require('pg');
 const multer = require('multer');
