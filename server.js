@@ -22,17 +22,29 @@ const URL_BASE = (
 
 app.use(cors());
 
-app.use(
-  express.json({
-    limit: '10mb',
-  })
-);
+// Limitador de requisições global (Proteção contra DoS / Sobrecarga)
+const globalLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { sucesso: false, mensagem: 'Muitas requisições. Por favor, aguarde um minuto.' },
+});
 
-app.use(
-  express.urlencoded({
-    extended: true,
-  })
-);
+// Limitador estrito para login (Proteção contra Força Bruta)
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { sucesso: false, mensagem: 'Muitas tentativas de login. Tente novamente após 15 minutos.' },
+});
+
+app.use(globalLimiter);
+app.use('/login', loginLimiter);
+
+app.use(express.json({ limit: '2mb' }));
+app.use(express.urlencoded({ extended: true }));
 
 /* =====================================================
    BANCO DE DADOS
