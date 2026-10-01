@@ -1,4 +1,5 @@
-const express = require('express');
+﻿const express = require('express');
+const rateLimit = require('express-rate-limit');
 const cors = require('cors');
 const { Pool } = require('pg');
 const multer = require('multer');
@@ -175,7 +176,7 @@ const upload =
   });
 
 /* =====================================================
-   FUNÇÕES AUXILIARES
+   FUNÃ‡Ã•ES AUXILIARES
 ===================================================== */
 
 async function apagarArquivos(
@@ -250,14 +251,7 @@ async function verificarUsuario(
   const resultado =
     await pool.query(
       `
-      SELECT
-        id,
-        nome,
-        matricula,
-        perfil,
-        ativo,
-        foto
-      FROM policiais
+      SELECT * FROM policiais
       WHERE matricula = $1
         AND ativo = true
       LIMIT 1
@@ -359,9 +353,17 @@ async function garantirTabelaFotosChecklist() {
       `
     );
 
-    console.log(
-      'Tabela checklist_fotos verificada.'
+    await pool.query(
+      `
+      ALTER TABLE policiais ADD COLUMN IF NOT EXISTS patente TEXT;
+      ALTER TABLE policiais ADD COLUMN IF NOT EXISTS email TEXT;
+      ALTER TABLE policiais ADD COLUMN IF NOT EXISTS numero_celular TEXT;
+      ALTER TABLE policiais ADD COLUMN IF NOT EXISTS celular TEXT;
+      ALTER TABLE policiais ADD COLUMN IF NOT EXISTS telefone TEXT;
+      `
     );
+    console.log('Colunas de policiais verificadas.');
+    console.log('Tabela checklist_fotos verificada.');
   } catch (erro) {
     console.error(
       'ERRO AO CRIAR checklist_fotos:',
@@ -446,21 +448,14 @@ app.post(
         ).json({
           sucesso: false,
           mensagem:
-            'Matrícula e senha são obrigatórias.',
+            'matrícula e senha são obrigatórias.',
         });
       }
 
       const resultado =
         await pool.query(
           `
-          SELECT
-            id,
-            nome,
-            matricula,
-            perfil,
-            ativo,
-            foto
-          FROM policiais
+          SELECT * FROM policiais
           WHERE matricula = $1
             AND senha = $2
             AND ativo = true
@@ -481,7 +476,7 @@ app.post(
         ).json({
           sucesso: false,
           mensagem:
-            'Matrícula ou senha inválida.',
+            'matrícula ou senha inválida.',
         });
       }
 
@@ -588,7 +583,7 @@ app.post(
         ).json({
           sucesso: false,
           mensagem:
-            'KM inicial e KM final devem ser números.',
+            'KM inicial e KM final devem ser nÃºmeros.',
         });
       }
 
@@ -655,7 +650,7 @@ app.post(
         ).json({
           sucesso: false,
           mensagem:
-            `O KM final (${kmFinal}) é menor que o KM atual da viatura (${viatura.km_atual}).`,
+            `O KM final (${kmFinal}) Ã© menor que o KM atual da viatura (${viatura.km_atual}).`,
         });
       }
 
@@ -768,7 +763,7 @@ app.post(
 );
 
 /* =====================================================
-   HISTÓRICO
+   HISTÃ“RICO
 ===================================================== */
 
 app.get(
@@ -837,7 +832,7 @@ app.get(
       );
     } catch (erro) {
       console.error(
-        'ERRO HISTÓRICO:',
+        'ERRO HISTÃ“RICO:',
         erro
       );
 
@@ -1106,7 +1101,7 @@ app.post(
         ).json({
           sucesso: false,
           mensagem:
-            'Já existe uma viatura com este prefixo ou placa.',
+            'já existe uma viatura com este prefixo ou placa.',
         });
       }
 
@@ -1619,7 +1614,7 @@ app.put(
 
 /* =====================================================
    CHECKLIST
-   ATÉ 5 FOTOS
+   ATÃ‰ 5 FOTOS
 ===================================================== */
 
 app.post(
@@ -1824,7 +1819,7 @@ app.post(
       );
 
       /* ---------------------------------------------
-         CABEÇALHO
+         CABEÃ‡ALHO
       --------------------------------------------- */
 
       const checklistResultado =
@@ -2015,7 +2010,7 @@ app.post(
 );
 
 /* =====================================================
-   HISTÓRICO DOS CHECKLISTS
+   HISTÃ“RICO DOS CHECKLISTS
 ===================================================== */
 
 app.get(
@@ -2137,7 +2132,7 @@ app.get(
       );
     } catch (erro) {
       console.error(
-        'ERRO HISTÓRICO CHECKLIST:',
+        'ERRO HISTÃ“RICO CHECKLIST:',
         erro
       );
 
@@ -2183,14 +2178,7 @@ app.get(
       const resultado =
         await pool.query(
           `
-          SELECT
-            id,
-            nome,
-            matricula,
-            perfil,
-            ativo,
-            foto
-          FROM policiais
+          SELECT * FROM policiais
           ORDER BY nome
           `
         );
@@ -2598,7 +2586,7 @@ const servidor =
         .catch(
           (erro) => {
             console.error(
-              'ERRO NA INICIALIZAÇÃO DO BANCO:',
+              'ERRO NA INICIALIZAÃ‡ÃƒO DO BANCO:',
               erro
             );
           }
